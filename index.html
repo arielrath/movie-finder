@@ -297,9 +297,27 @@ if(!m)return;
 switch(btn.dataset.action){
 case "open":
 if(m.link&&validUrl(m.link)){
+const isDrive =
+/drive\.google\.com|docs\.google\.com/.test(m.link);
+
+if(isDrive){
+const driveUrl = m.link.replace(
+"https://drive.google.com/",
+"googledrive://"
+);
+
+window.location.href = driveUrl;
+
+setTimeout(()=>{
+window.open(m.link,"_blank","noopener");
+},800);
+
+}else{
 window.open(m.link,"_blank","noopener");
 }
+}
 break;
+  
 
 case "favorite":
 m.favorite=!m.favorite;
