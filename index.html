@@ -8,13 +8,10 @@
 <style>
 *{box-sizing:border-box}
 body{
-  margin:0;
-  color:#fff;
-  font-family:Arial,sans-serif;
-  background:
-    linear-gradient(rgba(7,10,25,.72),rgba(7,10,25,.88)),
-    url("./הארי פוטר.jpg") center top / cover fixed;
-  background-color:#0b1020;
+margin:0;color:#fff;font-family:Arial,sans-serif;
+background:linear-gradient(rgba(7,10,25,.72),rgba(7,10,25,.88)),
+url("./הארי פוטר.jpg") center top/cover fixed;
+background-color:#0b1020
 }
 header{text-align:center;padding:35px 15px;background:linear-gradient(135deg,rgba(24,38,74,.75),rgba(57,33,107,.75));backdrop-filter:blur(5px)}
 h1{font-size:34px;margin:0}
@@ -28,26 +25,40 @@ nav button.active{background:#7663ff}
 input,select{width:100%;padding:13px;margin:7px 0 12px;border-radius:9px;border:1px solid #394765;background:#0d1527;color:white;font-size:16px}
 .movie{padding:15px 0;border-bottom:1px solid #34405a}
 .movie:last-child{border:0}
+.movie-layout{display:flex;gap:14px;align-items:flex-start}
+.poster{width:95px;height:135px;object-fit:cover;border-radius:9px;background:#26334d;flex-shrink:0}
+.movie-info{flex:1;min-width:0}
 .movie h3{margin:0 0 8px}
 .meta{color:#aab5cc;font-size:13px;margin-bottom:10px}
 .actions{display:flex;gap:7px;flex-wrap:wrap}
 .actions button{padding:8px 11px;font-size:13px}
 .secondary{background:#34415c}
 .danger{background:#a83250}
-.hidden{display:none}
+.backup{background:#197b70}
+.hidden{display:none!important}
 .empty{text-align:center;color:#aab5cc;padding:25px}
 .stats{display:flex;gap:10px}
 .stat{flex:1;text-align:center;background:#0d1527;padding:15px;border-radius:10px}
 .stat b{display:block;font-size:25px;color:#a99aff}
 small{color:#aab5cc}
+.note{font-size:12px;color:#aab5cc;margin-top:0}
+@media(max-width:430px){
+nav{gap:5px}
+nav button{padding:11px 5px;font-size:13px}
+.poster{width:78px;height:115px}
+.stats{gap:5px}
+.stat{padding:10px 4px}
+}
 </style>
-  <link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="./manifest.json">
 </head>
 <body>
+
 <header>
 <h1>🎬 Movie Finder</h1>
 <p>כל הסרטים שלך במקום אחד</p>
 </header>
+
 <main>
 <nav>
 <button class="active" data-page="search">חיפוש</button>
@@ -59,6 +70,26 @@ small{color:#aab5cc}
 <div class="panel">
 <h2>חיפוש סרט</h2>
 <input id="query" placeholder="הקלד שם של סרט...">
+
+<label>סינון לפי ז'אנר</label>
+<select id="filterGenre">
+<option value="">כל הז'אנרים</option>
+<option>פעולה</option>
+<option>קומדיה</option>
+<option>דרמה</option>
+<option>מתח</option>
+<option>מדע בדיוני</option>
+<option>אנימציה</option>
+<option>אחר</option>
+</select>
+
+<label>מיון סרטים</label>
+<select id="sort">
+<option value="default">ללא מיון</option>
+<option value="rating">דירוג גבוה לנמוך</option>
+<option value="ratingLow">דירוג נמוך לגבוה</option>
+<option value="name">שם הסרט א-ת</option>
+</select>
 </div>
 <div class="panel" id="results"></div>
 </section>
@@ -68,6 +99,9 @@ small{color:#aab5cc}
 <h2 id="formTitle">הוספת סרט חדש</h2>
 <input id="name" placeholder="שם הסרט">
 <input id="link" placeholder="קישור לסרט">
+<input id="poster" placeholder="קישור לתמונת הפוסטר">
+<p class="note">הדבק קישור ישיר לתמונה (JPG / PNG / WEBP).</p>
+
 <select id="genre">
 <option value="">בחר ז'אנר</option>
 <option>פעולה</option>
@@ -78,6 +112,7 @@ small{color:#aab5cc}
 <option>אנימציה</option>
 <option>אחר</option>
 </select>
+
 <select id="rating">
 <option value="0">ללא דירוג</option>
 <option value="1">★ 1</option>
@@ -86,12 +121,23 @@ small{color:#aab5cc}
 <option value="4">★ 4</option>
 <option value="5">★ 5</option>
 </select>
+
 <button id="save" style="width:100%">שמור סרט</button>
 <button id="cancel" class="secondary hidden" style="width:100%;margin-top:8px">ביטול</button>
 </div>
+
 <div class="panel">
 <h2>הספרייה שלי</h2>
 <div id="manageList"></div>
+</div>
+
+<div class="panel">
+<h2>גיבוי ושחזור</h2>
+<p class="note">שמור את כל הסרטים שלך בקובץ או שחזר אותם מגיבוי קודם.</p>
+<button id="export" class="backup" style="width:100%;margin-bottom:10px">⬇ הורדת גיבוי</button>
+<label for="importFile">שחזור מקובץ גיבוי:</label>
+<input type="file" id="importFile" accept=".json,application/json">
+<p class="note">ייבוא גיבוי מחליף את הספרייה הנוכחית.</p>
 </div>
 </section>
 
@@ -114,9 +160,21 @@ let editing=null;
 
 const $=id=>document.getElementById(id);
 
+function validUrl(value){
+if(!value)return true;
+try{
+const url=new URL(value);
+return url.protocol==="https:"||url.protocol==="http:";
+}catch{return false}
+}
+
 function saveData(){
+try{
 localStorage.setItem(KEY,JSON.stringify(movies));
 render();
+}catch(e){
+alert("אין מספיק מקום לשמירת הנתונים במכשיר.");
+}
 }
 
 function escapeHTML(value){
@@ -127,22 +185,44 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 
 function card(m,management=false){
 return `<div class="movie">
+<div class="movie-layout">
+${m.poster&&validUrl(m.poster)?`<img class="poster" src="${escapeHTML(m.poster)}" alt="פוסטר של ${escapeHTML(m.name)}" loading="lazy">`:""}
+<div class="movie-info">
 <h3>${escapeHTML(m.name)} ${m.favorite?"⭐":""}</h3>
 <div class="meta">${escapeHTML(m.genre||"ללא ז'אנר")} · ${m.rating?"★".repeat(m.rating):"ללא דירוג"}</div>
 <div class="actions">
-${m.link?`<button data-action="open" data-id="${m.id}">פתח קישור</button>`:""}
-<button class="secondary" data-action="favorite" data-id="${m.id}">${m.favorite?"הסר ממועדפים":"מועדפים"}</button>
+${m.link?`<button data-action="open" data-id="${escapeHTML(m.id)}">פתח קישור</button>`:""}
+<button class="secondary" data-action="favorite" data-id="${escapeHTML(m.id)}">${m.favorite?"הסר ממועדפים":"מועדפים"}</button>
 ${management?`
-<button class="secondary" data-action="edit" data-id="${m.id}">עריכה</button>
-<button class="danger" data-action="delete" data-id="${m.id}">מחיקה</button>`:""}
-</div></div>`;
+<button class="secondary" data-action="edit" data-id="${escapeHTML(m.id)}">עריכה</button>
+<button class="danger" data-action="delete" data-id="${escapeHTML(m.id)}">מחיקה</button>`:""}
+</div>
+</div>
+</div>
+</div>`;
 }
 
 function render(){
 const q=$("query").value.toLowerCase().trim();
-const found=movies.filter(m=>m.name.toLowerCase().includes(q));
-$("results").innerHTML=found.length?found.map(m=>card(m)).join(''):'<div class="empty">לא נמצאו סרטים</div>';
-$("manageList").innerHTML=movies.length?movies.map(m=>card(m,true)).join(''):'<div class="empty">הספרייה עדיין ריקה</div>';
+const genre=$("filterGenre").value;
+let found=movies.filter(m=>
+String(m.name).toLowerCase().includes(q)&&
+(!genre||m.genre===genre)
+);
+
+const sort=$("sort").value;
+if(sort==="rating")found.sort((a,b)=>b.rating-a.rating);
+if(sort==="ratingLow")found.sort((a,b)=>a.rating-b.rating);
+if(sort==="name")found.sort((a,b)=>a.name.localeCompare(b.name,"he"));
+
+$("results").innerHTML=found.length?
+found.map(m=>card(m)).join(""):
+'<div class="empty">לא נמצאו סרטים</div>';
+
+$("manageList").innerHTML=movies.length?
+movies.map(m=>card(m,true)).join(""):
+'<div class="empty">הספרייה עדיין ריקה</div>';
+
 $("total").textContent=movies.length;
 $("favorites").textContent=movies.filter(m=>m.favorite).length;
 $("rated").textContent=movies.filter(m=>m.rating>0).length;
@@ -152,6 +232,7 @@ function resetForm(){
 editing=null;
 $("name").value="";
 $("link").value="";
+$("poster").value="";
 $("genre").value="";
 $("rating").value="0";
 $("formTitle").textContent="הוספת סרט חדש";
@@ -162,16 +243,28 @@ $("cancel").classList.add("hidden");
 $("save").onclick=()=>{
 const name=$("name").value.trim();
 const link=$("link").value.trim();
+const poster=$("poster").value.trim();
+
 if(!name){alert("נא להזין שם סרט");return}
-if(link&&!/^https?:\/\//i.test(link)){
-alert("הקישור חייב להתחיל ב-http:// או https://");return;
-}
-const data={name,link,genre:$("genre").value,rating:Number($("rating").value)};
+if(!validUrl(link)){alert("קישור הסרט חייב להתחיל ב-http:// או https://");return}
+if(!validUrl(poster)){alert("קישור הפוסטר אינו תקין");return}
+
+const data={
+name,link,poster,
+genre:$("genre").value,
+rating:Number($("rating").value)
+};
+
 if(editing!==null){
 movies=movies.map(m=>m.id===editing?{...m,...data}:m);
 }else{
-movies.push({id:Date.now().toString(),...data,favorite:false});
+movies.push({
+id:Date.now().toString(),
+...data,
+favorite:false
+});
 }
+
 resetForm();
 saveData();
 alert("הסרט נשמר בהצלחה!");
@@ -179,12 +272,16 @@ alert("הסרט נשמר בהצלחה!");
 
 $("cancel").onclick=resetForm;
 $("query").oninput=render;
+$("filterGenre").onchange=render;
+$("sort").onchange=render;
 
 document.querySelectorAll("nav button").forEach(btn=>{
 btn.onclick=()=>{
 document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
 btn.classList.add("active");
-["search","manage","stats"].forEach(id=>$(id).classList.toggle("hidden",id!==btn.dataset.page));
+["search","manage","stats"].forEach(id=>
+$(id).classList.toggle("hidden",id!==btn.dataset.page)
+);
 render();
 };
 });
@@ -192,30 +289,37 @@ render();
 document.addEventListener("click",e=>{
 const btn=e.target.closest("button[data-action]");
 if(!btn)return;
+
 const id=btn.dataset.id;
 const m=movies.find(x=>x.id===id);
 if(!m)return;
 
 switch(btn.dataset.action){
 case "open":
-if(m.link)window.open(m.link,"_blank","noopener");
+if(m.link&&validUrl(m.link)){
+window.open(m.link,"_blank","noopener");
+}
 break;
+
 case "favorite":
 m.favorite=!m.favorite;
 saveData();
 break;
+
 case "edit":
 editing=id;
 $("name").value=m.name;
-$("link").value=m.link;
-$("genre").value=m.genre;
-$("rating").value=String(m.rating);
+$("link").value=m.link||"";
+$("poster").value=m.poster||"";
+$("genre").value=m.genre||"";
+$("rating").value=String(m.rating||0);
 $("formTitle").textContent="עריכת סרט";
 $("save").textContent="שמור שינויים";
 $("cancel").classList.remove("hidden");
 document.querySelector('[data-page="manage"]').click();
 window.scrollTo(0,0);
 break;
+
 case "delete":
 if(confirm("למחוק את הסרט?")){
 movies=movies.filter(x=>x.id!==id);
@@ -225,14 +329,78 @@ break;
 }
 });
 
+// הורדת גיבוי
+$("export").onclick=()=>{
+const backup={
+version:1,
+exportedAt:new Date().toISOString(),
+movies:movies
+};
+
+const blob=new Blob(
+[JSON.stringify(backup,null,2)],
+{type:"application/json"}
+);
+
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url;
+a.download="Movie-Finder-Backup.json";
+a.click();
+URL.revokeObjectURL(url);
+};
+
+// שחזור גיבוי
+$("importFile").onchange=async e=>{
+const file=e.target.files[0];
+if(!file)return;
+
+try{
+const text=await file.text();
+const data=JSON.parse(text);
+const imported=Array.isArray(data)?data:data.movies;
+
+if(!Array.isArray(imported))throw new Error("invalid");
+
+const cleaned=imported.map((m,i)=>{
+if(!m||typeof m.name!=="string"||!m.name.trim())throw new Error("invalid");
+if(!validUrl(m.link||"")||!validUrl(m.poster||""))throw new Error("invalid");
+
+return {
+id:String(m.id||Date.now()+i),
+name:m.name.trim(),
+link:m.link||"",
+poster:m.poster||"",
+genre:m.genre||"",
+rating:Math.min(5,Math.max(0,Number(m.rating)||0)),
+favorite:Boolean(m.favorite)
+};
+});
+
+if(!confirm("השחזור יחליף את כל הספרייה הנוכחית. להמשיך?"))return;
+
+movies=cleaned;
+resetForm();
+saveData();
+alert("הגיבוי שוחזר בהצלחה!");
+
+}catch(err){
+alert("קובץ הגיבוי אינו תקין או שאינו מתאים.");
+}
+
+e.target.value="";
+};
+
 render();
 </script>
-  <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(console.error);
-  });
+
+<script>
+if("serviceWorker" in navigator){
+window.addEventListener("load",()=>{
+navigator.serviceWorker.register("./sw.js").catch(console.error);
+});
 }
 </script>
+
 </body>
 </html>
